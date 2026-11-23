@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<title>单位换算</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: #000;
+    background: radial-gradient(140% 90% at 50% -10%, #ffffff 0%, #f5f5f9 42%, #ececf1 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: calc(20px + env(safe-area-inset-top)) 20px calc(48px + env(safe-area-inset-bottom));
+  }
+
+  h1 {
+    margin: 10px 0 22px 4px;
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+  }
+
+  /* ---------- 卡片 ---------- */
+  .card {
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+                0 10px 30px -12px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+  }
+
+  .input-card {
+    padding: 16px;
+  }
+
+  /* ---------- 数字输入 ---------- */
+  #num {
+    display: block;
+    width: 100%;
+    margin: 0 0 14px;
+    padding: 2px 4px 4px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 46px;
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -1.6px;
+    color: #000;
+    caret-color: #007AFF;
+  }
+
+  #num::placeholder {
+    color: #c8c8cd;
+    font-weight: 500;
+  }
+
+  /* ---------- 分段控件（iOS Segmented Control） ---------- */
+  .segment {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 11px;
+    background: rgba(118, 118, 128, 0.13);
+  }
+
+  .seg-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 0;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: #000;
+    cursor: pointer;
+    transition: background-color .22s ease, box-shadow .22s ease, transform .12s ease;
+  }
+
+  .seg-btn:active {
+    transform: scale(0.96);
+  }
+
+  .seg-btn.active {
+    background: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12),
+                0 1px 1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* ---------- 分组标题 ---------- */
+  .section-title {
+    margin: 26px 0 8px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: #8e8e93;
+  }
+
+  /* ---------- 结果行 ---------- */
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 54px;
+    padding: 15px 18px;
+    transition: background-color .2s ease;
+  }
+
+  .row + .row {
+    border-top: 1px solid rgba(60, 60, 67, 0.10);
+  }
+
+  .row-label {
+    flex: 0 0 auto;
+    font-size: 15px;
+    font-weight: 400;
+    color: #000;
+    transition: color .2s ease;
+  }
+
+  .row-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: right;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.2px;
+    font-variant-numeric: tabular-nums;
+    color: #000;
+    word-break: break-all;
+    transition: color .2s ease;
+  }
+
+  .row.is-active {
+    background: rgba(0, 122, 255, 0.06);
+  }
+
+  .row.is-active .row-label,
+  .row.is-active .row-value {
+    color: #007AFF;
+  }
+
+  /* ---------- 深色模式 ---------- */
+  @media (prefers-color-scheme: dark) {
+    body {
+      background: radial-gradient(140% 90% at 50% -10%, #1d1d1f 0%, #0a0a0b 45%, #000 100%);
+      background-attachment: fixed;
+      color: #fff;
+    }
+
+    .card {
+      background: #1c1c1e;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5),
+                  0 10px 30px -12px rgba(0, 0, 0, 0.8);
+    }
+
+    #num {
+      color: #fff;
+      caret-color: #0a84ff;
+    }
+
+    #num::placeholder {
+      color: #48484a;
+    }
+
+    .segment {
+      background: rgba(118, 118, 128, 0.24);
+    }
+
+    .seg-btn {
+      color: #fff;
+    }
+
+    .seg-btn.active {
+      background: #636366;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .section-title {
+      color: #8e8e93;
+    }
+
+    .row + .row {
+      border-top-color: rgba(84, 84, 88, 0.6);
+    }
+
+    .row-label,
+    .row-value {
+      color: #fff;
+    }
+
+    .row.is-active {
+      background: rgba(10, 132, 255, 0.14);
+    }
+
+    .row.is-active .row-label,
+    .row.is-active .row-value {
+      color: #0a84ff;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>单位换算</h1>
+
+  <!-- 输入区 -->
+  <section class="card input-card">
+    <input id="num" type="text" inputmode="decimal" autocomplete="off"
+           spellcheck="false" placeholder="0" value="1" aria-label="请输入数值">
+    <div class="segment" id="segment">
+      <button class="seg-btn active" data-unit="m">米</button>
+      <button class="seg-btn" data-unit="cm">厘米</button>
+      <button class="seg-btn" data-unit="kg">千克</button>
+      <button class="seg-btn" data-unit="g">克</button>
+    </div>
+  </section>
+
+  <!-- 长度 -->
+  <div class="section-title">长度</div>
+  <section class="card">
+    <div class="row" data-unit="m">
+      <span class="row-label">米</span>
+      <span class="row-value" id="out-m">—</span>
+    </div>
+    <div class="row" data-unit="cm">
+      <span class="row-label">厘米</span>
+      <span class="row-value" id="out-cm">—</span>
+    </div>
+  </section>
+
+  <!-- 重量 -->
+  <div class="section-title">重量</div>
+  <section class="card">
+    <div class="row" data-unit="kg">
+      <span class="row-label">千克</span>
+      <span class="row-value" id="out-kg">—</span>
+    </div>
+    <div class="row" data-unit="g">
+      <span class="row-label">克</span>
+      <span class="row-value" id="out-g">—</span>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* 单位定义：f = 相对本单位（基准单位）的换算系数 */
+  var UNITS = {
+    m:  { label: '米',   cat: 'length', f: 1 },
+    cm: { label: '厘米', cat: 'length', f: 0.01 },
+    kg: { label: '千克', cat: 'weight', f: 1 },
+    g:  { label: '克',   cat: 'weight', f: 0.001 }
+  };
+
+  var input   = document.getElementById('num');
+  var segment = document.getElementById('segment');
+  var rows    = Array.prototype.slice.call(document.querySelectorAll('.row'));
+  var outputs = {
+    m:  document.getElementById('out-m'),
+    cm: document.getElementById('out-cm'),
+    kg: document.getElementById('out-kg'),
+    g:  document.getElementById('out-g')
+  };
+
+  var currentUnit = 'm';
+
+  /* ---------- 数字格式化 ---------- */
+  function formatNumber(n) {
+    if (!isFinite(n)) return '—';
+    if (Object.is(n, -0)) n = 0;
+    if (n === 0) return '0';
+
+    var abs = Math.abs(n);
+
+    // 极小或极大的数字用科学计数法
+    if (abs < 1e-6 || abs >= 1e15) {
+      return n.toExponential(4)
+              .replace(/\.?0+e/, 'e')
+              .replace('e+', 'e');
+    }
+
+    // 用 toPrecision 消除浮点误差
+    var s = String(parseFloat(n.toPrecision(10)));
+
+    if (s.indexOf('e') !== -1) {
+      return n.toExponential(4)
+              .replace(/\.?0+e/, 'e')
+              .replace('e+', 'e');
+    }
+
+    var neg = s.charAt(0) === '-';
+    if (neg) s = s.slice(1);
+
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return (neg ? '-' : '') + parts.join('.');
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render() {
+    var raw = input.value.trim();
+    var n = parseFloat(raw);
+    var valid = raw !== '' && raw !== '.' && isFinite(n);
+    var cur = UNITS[currentUnit];
+
+    Object.keys(UNITS).forEach(function (key) {
+      var u = UNITS[key];
+      var v;
+
+      if (!valid) {
+        outputs[key].textContent = '—';
+        return;
+      }
+
+      if (u.cat === cur.cat) {
+        // 同类别：按当前单位换算
+        v = (n * cur.f) / u.f;
+      } else {
+        // 跨类别：把输入数字当作该类别基准单位的数值
+        v = n / u.f;
+      }
+
+      outputs[key].textContent = formatNumber(v);
+    });
+
+    rows.forEach(function (row) {
+      row.classList.toggle('is-active', row.dataset.unit === currentUnit);
+    });
+  }
+
+  /* ---------- 输入过滤 ---------- */
+  input.addEventListener('input', function () {
+    var v = this.value.replace(/[^\d.]/g, '');
+
+    // 只保留第一个小数点
+    var dot = v.indexOf('.');
+    if (dot !== -1) {
+      v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '');
+    }
+
+    // 去掉多余前导零
+    v = v.replace(/^0+(\d)/, '$1');
+
+    // 长度限制
+    if (v.length > 18) v = v.slice(0, 18);
+
+    if (v !== this.value) this.value = v;
+
+    render();
+  });
+
+  /* ---------- 切换单位 ---------- */
+  segment.addEventListener('click', function (e) {
+    var btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+
+    currentUnit = btn.dataset.unit;
+
+    Array.prototype.forEach.call(segment.querySelectorAll('.seg-btn'), function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+
+    render();
+
+    if (navigator.vibrate) navigator.vibrate(8);
+  });
+
+  /* ---------- 初始化 ---------- */
+  render();
+})();
+</script>
+</body>
+</html>
