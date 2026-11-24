@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="百宝箱">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<title>单位换算</title>
+<meta name="description" content="单位换算、文字去重、字数统计，三个纯本地运行的小工具。">
+<title>百宝箱 · 单位换算 / 文字去重 / 字数统计</title>
 <style>
+  /* ===================== 基础 ===================== */
   *, *::before, *::after {
     box-sizing: border-box;
   }
@@ -17,13 +21,31 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  :root {
+    --card: #ffffff;
+    --text: #000000;
+    --text-2: #8e8e93;
+    --text-3: #c7c7cc;
+    --sep: rgba(60, 60, 67, 0.10);
+    --fill: rgba(118, 118, 128, 0.13);
+    --fill-2: rgba(118, 118, 128, 0.20);
+    --accent: #007aff;
+    --accent-soft: rgba(0, 122, 255, 0.09);
+    --seg-on: #ffffff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 10px 30px -12px rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05),
+                 0 6px 18px -10px rgba(0, 0, 0, 0.14);
+    --tabbar: rgba(255, 255, 255, 0.72);
+  }
+
   body {
     margin: 0;
     min-height: 100vh;
     min-height: 100dvh;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
                  "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    color: #000;
+    color: var(--text);
     background: radial-gradient(140% 90% at 50% -10%, #ffffff 0%, #f5f5f9 42%, #ececf1 100%);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
@@ -32,33 +54,137 @@
   }
 
   .app {
-    max-width: 480px;
+    max-width: 640px;
     margin: 0 auto;
-    padding: calc(20px + env(safe-area-inset-top)) 20px calc(48px + env(safe-area-inset-bottom));
+    padding: calc(20px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom));
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ===================== 标题 ===================== */
+  .topbar {
+    margin: 6px 0 20px 4px;
   }
 
   h1 {
-    margin: 10px 0 22px 4px;
+    margin: 0;
     font-size: 34px;
     line-height: 1.15;
     font-weight: 700;
     letter-spacing: -0.8px;
   }
 
-  /* ---------- 卡片 ---------- */
+  .subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-2);
+  }
+
+  /* ===================== 顶部 Tab ===================== */
+  .tabs {
+    position: sticky;
+    top: calc(8px + env(safe-area-inset-top));
+    z-index: 20;
+    display: flex;
+    gap: 2px;
+    margin: 0 0 18px;
+    padding: 3px;
+    border-radius: 13px;
+    background: var(--tabbar);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 9px 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color .22s ease, box-shadow .22s ease,
+                transform .12s ease, color .22s ease;
+  }
+
+  .tab:active {
+    transform: scale(0.96);
+  }
+
+  .tab.is-on {
+    background: var(--seg-on);
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12),
+                0 1px 1px rgba(0, 0, 0, 0.04);
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* ===================== 面板 ===================== */
+  .panel {
+    display: none;
+    outline: none;
+  }
+
+  .panel.is-active {
+    display: block;
+    animation: panelIn .3s cubic-bezier(.22, .61, .36, 1) both;
+  }
+
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ===================== 卡片 ===================== */
   .card {
-    background: #ffffff;
+    background: var(--card);
     border-radius: 18px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
-                0 10px 30px -12px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--shadow);
     overflow: hidden;
   }
 
+  .card + .card {
+    margin-top: 12px;
+  }
+
+  .pad {
+    padding: 16px;
+  }
+
+  .section-title {
+    margin: 26px 0 8px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: var(--text-2);
+  }
+
+  /* ===================== 数字输入（单位换算） ===================== */
   .input-card {
     padding: 16px;
   }
 
-  /* ---------- 数字输入 ---------- */
   #num {
     display: block;
     width: 100%;
@@ -72,22 +198,28 @@
     line-height: 1.1;
     font-weight: 600;
     letter-spacing: -1.6px;
-    color: #000;
-    caret-color: #007AFF;
+    color: var(--text);
+    caret-color: var(--accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   #num::placeholder {
-    color: #c8c8cd;
+    color: var(--text-3);
     font-weight: 500;
   }
 
-  /* ---------- 分段控件（iOS Segmented Control） ---------- */
+  /* ===================== 分段控件（iOS Segmented Control） ===================== */
   .segment {
     display: flex;
     gap: 2px;
     padding: 2px;
     border-radius: 11px;
-    background: rgba(118, 118, 128, 0.13);
+    background: var(--fill);
+  }
+
+  .segment + .segment {
+    margin-top: 8px;
   }
 
   .seg-btn {
@@ -100,32 +232,30 @@
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
-    color: #000;
+    color: var(--text);
+    white-space: nowrap;
     cursor: pointer;
-    transition: background-color .22s ease, box-shadow .22s ease, transform .12s ease;
+    transition: background-color .22s ease, box-shadow .22s ease,
+                transform .12s ease, color .22s ease;
   }
 
   .seg-btn:active {
     transform: scale(0.96);
   }
 
-  .seg-btn.active {
-    background: #ffffff;
+  .seg-btn.is-on {
+    background: var(--seg-on);
     font-weight: 600;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12),
                 0 1px 1px rgba(0, 0, 0, 0.04);
   }
 
-  /* ---------- 分组标题 ---------- */
-  .section-title {
-    margin: 26px 0 8px 6px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    color: #8e8e93;
+  .seg-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
-  /* ---------- 结果行 ---------- */
+  /* ===================== 结果行 ===================== */
   .row {
     display: flex;
     align-items: center;
@@ -137,14 +267,14 @@
   }
 
   .row + .row {
-    border-top: 1px solid rgba(60, 60, 67, 0.10);
+    border-top: 1px solid var(--sep);
   }
 
   .row-label {
     flex: 0 0 auto;
     font-size: 15px;
     font-weight: 400;
-    color: #000;
+    color: var(--text);
     transition: color .2s ease;
   }
 
@@ -157,76 +287,445 @@
     line-height: 1.35;
     letter-spacing: -0.2px;
     font-variant-numeric: tabular-nums;
-    color: #000;
+    color: var(--text);
     word-break: break-all;
     transition: color .2s ease;
   }
 
   .row.is-active {
-    background: rgba(0, 122, 255, 0.06);
+    background: var(--accent-soft);
   }
 
   .row.is-active .row-label,
   .row.is-active .row-value {
-    color: #007AFF;
+    color: var(--accent);
   }
 
-  /* ---------- 深色模式 ---------- */
+  /* ===================== 文本框 ===================== */
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 210px;
+    margin: 0;
+    padding: 13px 14px;
+    border: 0;
+    border-radius: 12px;
+    outline: none;
+    resize: vertical;
+    background: var(--fill);
+    font-family: inherit;
+    font-size: 16px; /* 不小于 16px，避免 iOS 聚焦时自动放大页面 */
+    line-height: 1.62;
+    color: var(--text);
+    caret-color: var(--accent);
+    -webkit-appearance: none;
+    appearance: none;
+    transition: box-shadow .22s ease, background-color .22s ease;
+  }
+
+  textarea::placeholder {
+    color: var(--text-3);
+  }
+
+  textarea:focus {
+    box-shadow: 0 0 0 3px var(--accent-soft),
+                inset 0 0 0 1.5px rgba(0, 122, 255, 0.55);
+  }
+
+  textarea:read-only {
+    color: var(--text);
+  }
+
+  .big-textarea {
+    min-height: 260px;
+  }
+
+  .field {
+    min-width: 0;
+  }
+
+  .field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 2px 7px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-2);
+  }
+
+  .field-meta {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-2);
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* ===================== 选项 ===================== */
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: 16px 2px 0;
+  }
+
+  .opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .opt input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  /* ===================== 按钮 ===================== */
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .btn {
+    flex: 0 0 auto;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--fill-2);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    color: var(--text);
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: transform .12s ease, opacity .2s ease, background-color .2s ease;
+  }
+
+  .btn:hover {
+    background: var(--fill);
+  }
+
+  .btn:active {
+    transform: scale(0.97);
+    opacity: 0.82;
+  }
+
+  .btn.primary {
+    flex: 1 1 auto;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .btn.primary:hover {
+    background: var(--accent);
+    opacity: 0.92;
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .status,
+  .hint {
+    margin: 12px 2px 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hint {
+    margin-top: 8px;
+  }
+
+  /* ===================== 统计格子 ===================== */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 15px 12px;
+    border-radius: 15px;
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+  }
+
+  .stat-num {
+    display: block;
+    font-size: 24px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  .stat-label {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .stat.is-primary .stat-num {
+    color: var(--accent);
+  }
+
+  /* ===================== 页脚 ===================== */
+  .footer {
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--sep);
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.75;
+    color: var(--text-2);
+  }
+
+  .footer p {
+    margin: 0;
+  }
+
+  .foot-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(142, 142, 147, 0.45);
+    text-underline-offset: 3px;
+  }
+
+  .link:hover {
+    color: var(--accent);
+  }
+
+  .sep-dot {
+    color: var(--text-3);
+  }
+
+  .footer .dev {
+    margin-top: 2px;
+    font-weight: 500;
+    color: var(--text-2);
+  }
+
+  .footer .beian {
+    margin-top: 2px;
+    font-size: 11px;
+  }
+
+  /* ===================== 提示条 ===================== */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(28px + env(safe-area-inset-bottom));
+    z-index: 200;
+    max-width: 76vw;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.82);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+    transform: translate(-50%, 12px);
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+
+  .toast.is-on {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  /* ===================== 弹层 ===================== */
+  .mask {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.32);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
+  }
+
+  .mask.is-on {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 640px;
+    max-height: 84vh;
+    overflow: auto;
+    padding: 18px 22px calc(22px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    background: var(--card);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
+    transform: translateY(24px);
+    transition: transform .3s cubic-bezier(.22, .61, .36, 1);
+  }
+
+  .mask.is-on .sheet {
+    transform: none;
+  }
+
+  .sheet-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .sheet-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  .sheet-close {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--fill);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+
+  .sheet-body {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+
+  .sheet-body p {
+    margin: 0 0 10px;
+  }
+
+  .sheet-body p:last-child {
+    margin-bottom: 0;
+  }
+
+  .sheet-body strong {
+    font-weight: 600;
+  }
+
+  /* ===================== 响应式 ===================== */
+  @media (min-width: 620px) {
+    .duo {
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .mask {
+      align-items: center;
+      padding: 24px;
+    }
+
+    .sheet {
+      border-radius: 20px;
+      padding: 22px 26px;
+    }
+  }
+
+  /* ===================== 深色模式 ===================== */
   @media (prefers-color-scheme: dark) {
+    :root {
+      --card: #1c1c1e;
+      --text: #ffffff;
+      --text-2: #8e8e93;
+      --text-3: #48484a;
+      --sep: rgba(84, 84, 88, 0.6);
+      --fill: rgba(118, 118, 128, 0.24);
+      --fill-2: rgba(118, 118, 128, 0.30);
+      --accent: #0a84ff;
+      --accent-soft: rgba(10, 132, 255, 0.16);
+      --seg-on: #636366;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.5),
+                0 10px 30px -12px rgba(0, 0, 0, 0.8);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5),
+                   0 6px 18px -10px rgba(0, 0, 0, 0.7);
+      --tabbar: rgba(28, 28, 30, 0.72);
+    }
+
     body {
-      background: radial-gradient(140% 90% at 50% -10%, #1d1d1f 0%, #0a0a0b 45%, #000 100%);
+      background: radial-gradient(140% 90% at 50% -10%, #1d1d1f 0%, #0a0a0b 45%, #000000 100%);
       background-attachment: fixed;
-      color: #fff;
     }
 
-    .card {
-      background: #1c1c1e;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5),
-                  0 10px 30px -12px rgba(0, 0, 0, 0.8);
+    textarea:focus {
+      box-shadow: 0 0 0 3px var(--accent-soft),
+                  inset 0 0 0 1.5px rgba(10, 132, 255, 0.6);
     }
 
-    #num {
-      color: #fff;
-      caret-color: #0a84ff;
+    .toast {
+      background: rgba(58, 58, 60, 0.95);
     }
+  }
 
-    #num::placeholder {
-      color: #48484a;
-    }
-
-    .segment {
-      background: rgba(118, 118, 128, 0.24);
-    }
-
-    .seg-btn {
-      color: #fff;
-    }
-
-    .seg-btn.active {
-      background: #636366;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-    }
-
-    .section-title {
-      color: #8e8e93;
-    }
-
-    .row + .row {
-      border-top-color: rgba(84, 84, 88, 0.6);
-    }
-
-    .row-label,
-    .row-value {
-      color: #fff;
-    }
-
-    .row.is-active {
-      background: rgba(10, 132, 255, 0.14);
-    }
-
-    .row.is-active .row-label,
-    .row.is-active .row-value {
-      color: #0a84ff;
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: .001ms !important;
+      transition-duration: .001ms !important;
     }
   }
 </style>
@@ -234,72 +733,330 @@
 <body>
 
 <div class="app">
-  <h1>单位换算</h1>
+  <header class="topbar">
+    <h1>百宝箱</h1>
+    <p class="subtitle">三个常用小工具，全部在本地运行</p>
+  </header>
 
-  <!-- 输入区 -->
-  <section class="card input-card">
-    <input id="num" type="text" inputmode="decimal" autocomplete="off"
-           spellcheck="false" placeholder="0" value="1" aria-label="请输入数值">
-    <div class="segment" id="segment">
-      <button class="seg-btn active" data-unit="m">米</button>
-      <button class="seg-btn" data-unit="cm">厘米</button>
-      <button class="seg-btn" data-unit="kg">千克</button>
-      <button class="seg-btn" data-unit="g">克</button>
-    </div>
-  </section>
+  <!-- 顶部 Tab -->
+  <nav class="tabs" role="tablist" aria-label="工具切换">
+    <button class="tab is-on" type="button" role="tab" id="tab-convert"
+            data-tab="convert" aria-selected="true" aria-controls="panel-convert">单位换算</button>
+    <button class="tab" type="button" role="tab" id="tab-dedupe"
+            data-tab="dedupe" aria-selected="false" aria-controls="panel-dedupe" tabindex="-1">文字去重</button>
+    <button class="tab" type="button" role="tab" id="tab-count"
+            data-tab="count" aria-selected="false" aria-controls="panel-count" tabindex="-1">字数统计</button>
+  </nav>
 
-  <!-- 长度 -->
-  <div class="section-title">长度</div>
-  <section class="card">
-    <div class="row" data-unit="m">
-      <span class="row-label">米</span>
-      <span class="row-value" id="out-m">—</span>
-    </div>
-    <div class="row" data-unit="cm">
-      <span class="row-label">厘米</span>
-      <span class="row-value" id="out-cm">—</span>
-    </div>
-  </section>
+  <main>
+    <!-- ==================== 工具一：单位换算 ==================== -->
+    <section class="panel is-active" id="panel-convert" role="tabpanel" aria-labelledby="tab-convert">
+      <div class="card input-card">
+        <label class="sr-only" for="num">输入数值</label>
+        <input id="num" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+               placeholder="0" value="1" aria-label="请输入数值">
 
-  <!-- 重量 -->
-  <div class="section-title">重量</div>
-  <section class="card">
-    <div class="row" data-unit="kg">
-      <span class="row-label">千克</span>
-      <span class="row-value" id="out-kg">—</span>
+        <div class="segment" id="cat-segment" role="group" aria-label="换算类别">
+          <button class="seg-btn is-on" type="button" data-cat="length">长度</button>
+          <button class="seg-btn" type="button" data-cat="weight">重量</button>
+        </div>
+
+        <div class="segment" id="unit-segment" role="group" aria-label="当前单位"></div>
+      </div>
+
+      <div class="section-title" id="result-title">长度换算</div>
+      <section class="card" id="result-card" aria-live="polite"></section>
+    </section>
+
+    <!-- ==================== 工具二：文字去重 ==================== -->
+    <section class="panel" id="panel-dedupe" role="tabpanel" aria-labelledby="tab-dedupe" aria-hidden="true">
+      <div class="card pad">
+        <div class="duo">
+          <div class="field">
+            <div class="field-head">
+              <label class="field-label" for="dedupe-in">原始文本</label>
+              <span class="field-meta" id="dedupe-in-meta">0 行</span>
+            </div>
+            <textarea id="dedupe-in" spellcheck="false" autocomplete="off"
+                      placeholder="每行一条内容，重复的行会被自动去掉…"></textarea>
+          </div>
+
+          <div class="field">
+            <div class="field-head">
+              <label class="field-label" for="dedupe-out">去重结果</label>
+              <span class="field-meta" id="dedupe-out-meta">0 行</span>
+            </div>
+            <textarea id="dedupe-out" spellcheck="false" readonly
+                      placeholder="点击下方「开始去重」"></textarea>
+          </div>
+        </div>
+
+        <div class="options">
+          <label class="opt"><input type="checkbox" id="opt-trim" checked><span>忽略首尾空格</span></label>
+          <label class="opt"><input type="checkbox" id="opt-case"><span>忽略大小写</span></label>
+          <label class="opt"><input type="checkbox" id="opt-empty" checked><span>移除空行</span></label>
+          <label class="opt"><input type="checkbox" id="opt-sort"><span>结果排序</span></label>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" type="button" id="btn-dedupe">开始去重</button>
+          <button class="btn" type="button" id="btn-dedupe-copy">复制结果</button>
+          <button class="btn" type="button" id="btn-dedupe-clear">清空</button>
+        </div>
+
+        <p class="status" id="dedupe-status" aria-live="polite">原始 0 行 · 去掉 0 行 · 保留 0 行</p>
+        <p class="hint">默认保留每行内容第一次出现的位置；勾选「结果排序」后会按中文拼音顺序重新排列。</p>
+      </div>
+    </section>
+
+    <!-- ==================== 工具三：字数统计 ==================== -->
+    <section class="panel" id="panel-count" role="tabpanel" aria-labelledby="tab-count" aria-hidden="true">
+      <div class="card pad">
+        <label class="sr-only" for="count-in">待统计的文字</label>
+        <textarea id="count-in" spellcheck="false" autocomplete="off" class="big-textarea"
+                  placeholder="把文字粘贴到这里，下方会实时统计…"></textarea>
+
+        <div class="actions">
+          <button class="btn primary" type="button" id="btn-count-copy">复制统计结果</button>
+          <button class="btn" type="button" id="btn-count-clear">清空</button>
+        </div>
+      </div>
+
+      <div class="section-title">实时统计</div>
+      <div class="stats" id="stats">
+        <div class="stat is-primary">
+          <span class="stat-num" id="st-chars">0</span>
+          <span class="stat-label">字符数</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-nospace">0</span>
+          <span class="stat-label">不含空格</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-cjk">0</span>
+          <span class="stat-label">中文字符</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-words">0</span>
+          <span class="stat-label">英文单词</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-digits">0</span>
+          <span class="stat-label">数字</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-punct">0</span>
+          <span class="stat-label">标点符号</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-lines">0</span>
+          <span class="stat-label">行数</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="st-paras">0</span>
+          <span class="stat-label">段落</span>
+        </div>
+      </div>
+      <p class="hint">字符数按 Unicode 字符计算（一个 emoji 算 1 个），中文字符包含常用汉字与扩展区汉字。</p>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="foot-line">
+      <button type="button" class="link" data-sheet="privacy">隐私说明</button>
+      <span class="sep-dot" aria-hidden="true">·</span>
+      <button type="button" class="link" data-sheet="about">关于本站</button>
     </div>
-    <div class="row" data-unit="g">
-      <span class="row-label">克</span>
-      <span class="row-value" id="out-g">—</span>
+    <p>© <span id="year">2026</span> 百宝箱 · 保留一切权利</p>
+    <p class="dev">开发者：戴华烁</p>
+    <!--
+      备案信息：只有把网站部署到自己的域名、并通过工信部 ICP 备案后才需要显示。
+      拿到真实备案号后，去掉下面的 hidden，把 XXXX 换成你的备案号即可；
+      按规范，备案号应当链到 https://beian.miit.gov.cn/ 。
+    -->
+    <p class="beian" hidden>粤ICP备XXXXXXXX号-1</p>
+  </footer>
+</div>
+
+<!-- 轻提示 -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- 底部说明弹层 -->
+<div class="mask" id="mask" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-bar">
+      <span class="sheet-title" id="sheet-title">隐私说明</span>
+      <button type="button" class="sheet-close" id="sheet-close" aria-label="关闭">✕</button>
     </div>
-  </section>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
 </div>
 
 <script>
 (function () {
   'use strict';
 
-  /* 单位定义：f = 相对本单位（基准单位）的换算系数 */
-  var UNITS = {
-    m:  { label: '米',   cat: 'length', f: 1 },
-    cm: { label: '厘米', cat: 'length', f: 0.01 },
-    kg: { label: '千克', cat: 'weight', f: 1 },
-    g:  { label: '克',   cat: 'weight', f: 0.001 }
+  /* ========================================================
+   * 通用小工具
+   * ====================================================== */
+  function $(sel, root) {
+    return (root || document).querySelector(sel);
+  }
+
+  function $$(sel, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+  }
+
+  var toastEl = $('#toast');
+  var toastTimer = 0;
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove('is-on');
+    }, 1800);
+  }
+
+  function copyText(text) {
+    if (!text) {
+      toast('没有可复制的内容');
+      return;
+    }
+
+    function done() {
+      toast('已复制到剪贴板');
+    }
+
+    function fail() {
+      toast('复制失败，请手动选择复制');
+    }
+
+    function legacy() {
+      var ta = document.createElement('textarea');
+      try {
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? done() : fail();
+      } catch (e) {
+        if (ta.parentNode) document.body.removeChild(ta);
+        fail();
+      }
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, legacy);
+    } else {
+      legacy();
+    }
+  }
+
+  /* ========================================================
+   * 一、顶部 Tab 切换
+   * ====================================================== */
+  var TAB_KEYS = ['convert', 'dedupe', 'count'];
+  var tabBtns = $$('.tab');
+  var panelMap = {
+    convert: $('#panel-convert'),
+    dedupe: $('#panel-dedupe'),
+    count: $('#panel-count')
   };
 
-  var input   = document.getElementById('num');
-  var segment = document.getElementById('segment');
-  var rows    = Array.prototype.slice.call(document.querySelectorAll('.row'));
-  var outputs = {
-    m:  document.getElementById('out-m'),
-    cm: document.getElementById('out-cm'),
-    kg: document.getElementById('out-kg'),
-    g:  document.getElementById('out-g')
+  function activateTab(name, noHash) {
+    if (TAB_KEYS.indexOf(name) === -1) name = 'convert';
+
+    tabBtns.forEach(function (btn) {
+      var on = btn.dataset.tab === name;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.tabIndex = on ? 0 : -1;
+    });
+
+    TAB_KEYS.forEach(function (key) {
+      var on = key === name;
+      panelMap[key].classList.toggle('is-active', on);
+      panelMap[key].setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
+
+    if (!noHash) {
+      // file:// 下部分浏览器不允许改 history，忽略即可
+      try {
+        history.replaceState(null, '', '#' + name);
+      } catch (e) { /* ignore */ }
+    }
+
+    // 切回某个工具时刷新一次它的状态
+    if (name === 'dedupe') updateDedupeMeta();
+    if (name === 'count') updateCount();
+  }
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      activateTab(btn.dataset.tab);
+    });
+
+    // 键盘左右方向键切换
+    btn.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      var idx = TAB_KEYS.indexOf(btn.dataset.tab);
+      var next = (idx + (e.key === 'ArrowRight' ? 1 : TAB_KEYS.length - 1)) % TAB_KEYS.length;
+      activateTab(TAB_KEYS[next]);
+      var nextBtn = tabBtns.filter(function (b) {
+        return b.dataset.tab === TAB_KEYS[next];
+      })[0];
+      if (nextBtn) nextBtn.focus();
+    });
+  });
+
+  /* ========================================================
+   * 二、单位换算
+   * ====================================================== */
+  var UNIT_GROUPS = {
+    length: {
+      label: '长度',
+      units: [
+        { id: 'mm', label: '毫米', f: 0.001 },
+        { id: 'cm', label: '厘米', f: 0.01 },
+        { id: 'm', label: '米', f: 1 },
+        { id: 'km', label: '千米', f: 1000 }
+      ]
+    },
+    weight: {
+      label: '重量',
+      units: [
+        { id: 'mg', label: '毫克', f: 0.000001 },
+        { id: 'g', label: '克', f: 0.001 },
+        { id: 'kg', label: '千克', f: 1 },
+        { id: 't', label: '吨', f: 1000 }
+      ]
+    }
   };
 
-  var currentUnit = 'm';
+  var numInput = $('#num');
+  var catSegment = $('#cat-segment');
+  var unitSegment = $('#unit-segment');
+  var resultCard = $('#result-card');
+  var resultTitle = $('#result-title');
 
-  /* ---------- 数字格式化 ---------- */
+  var convState = {
+    cat: 'length',
+    unit: { length: 'm', weight: 'kg' }
+  };
+
+  var outputs = {};
+
+  /* 数字格式化：去掉浮点误差 + 千分位 + 极值用科学计数法 */
   function formatNumber(n) {
     if (!isFinite(n)) return '—';
     if (Object.is(n, -0)) n = 0;
@@ -307,14 +1064,12 @@
 
     var abs = Math.abs(n);
 
-    // 极小或极大的数字用科学计数法
     if (abs < 1e-6 || abs >= 1e15) {
       return n.toExponential(4)
               .replace(/\.?0+e/, 'e')
               .replace('e+', 'e');
     }
 
-    // 用 toPrecision 消除浮点误差
     var s = String(parseFloat(n.toPrecision(10)));
 
     if (s.indexOf('e') !== -1) {
@@ -332,85 +1087,401 @@
     return (neg ? '-' : '') + parts.join('.');
   }
 
-  /* ---------- 渲染 ---------- */
-  function render() {
-    var raw = input.value.trim();
-    var n = parseFloat(raw);
-    var valid = raw !== '' && raw !== '.' && isFinite(n);
-    var cur = UNITS[currentUnit];
+  function currentGroup() {
+    return UNIT_GROUPS[convState.cat];
+  }
 
-    Object.keys(UNITS).forEach(function (key) {
-      var u = UNITS[key];
-      var v;
+  function currentUnit() {
+    var group = currentGroup();
+    var id = convState.unit[convState.cat];
+    var found = group.units.filter(function (u) { return u.id === id; })[0];
+    return found || group.units[0];
+  }
 
-      if (!valid) {
-        outputs[key].textContent = '—';
-        return;
-      }
+  function buildUnitButtons() {
+    var group = currentGroup();
+    var active = convState.unit[convState.cat];
 
-      if (u.cat === cur.cat) {
-        // 同类别：按当前单位换算
-        v = (n * cur.f) / u.f;
-      } else {
-        // 跨类别：把输入数字当作该类别基准单位的数值
-        v = n / u.f;
-      }
+    unitSegment.innerHTML = group.units.map(function (u) {
+      return '<button type="button" class="seg-btn' + (u.id === active ? ' is-on' : '') +
+             '" data-unit="' + u.id + '">' + u.label + '</button>';
+    }).join('');
 
-      outputs[key].textContent = formatNumber(v);
-    });
-
-    rows.forEach(function (row) {
-      row.classList.toggle('is-active', row.dataset.unit === currentUnit);
+    $$('.seg-btn', catSegment).forEach(function (b) {
+      b.classList.toggle('is-on', b.dataset.cat === convState.cat);
     });
   }
 
-  /* ---------- 输入过滤 ---------- */
-  input.addEventListener('input', function () {
+  function buildRows() {
+    var group = currentGroup();
+    var active = convState.unit[convState.cat];
+
+    resultCard.innerHTML = group.units.map(function (u) {
+      return '<div class="row' + (u.id === active ? ' is-active' : '') + '" data-unit="' + u.id + '">' +
+               '<span class="row-label">' + u.label + '</span>' +
+               '<span class="row-value" data-out="' + u.id + '">—</span>' +
+             '</div>';
+    }).join('');
+
+    resultTitle.textContent = group.label + '换算';
+
+    outputs = {};
+    $$('[data-out]', resultCard).forEach(function (el) {
+      outputs[el.dataset.out] = el;
+    });
+  }
+
+  function renderConvert() {
+    var raw = numInput.value.trim();
+    var n = parseFloat(raw);
+    var valid = raw !== '' && raw !== '.' && isFinite(n);
+
+    var group = currentGroup();
+    var from = currentUnit();
+
+    group.units.forEach(function (u) {
+      var el = outputs[u.id];
+      if (!el) return;
+      el.textContent = valid ? formatNumber((n * from.f) / u.f) : '—';
+      el.parentNode.classList.toggle('is-active', u.id === from.id);
+    });
+  }
+
+  function refreshConvert() {
+    buildUnitButtons();
+    buildRows();
+    renderConvert();
+  }
+
+  /* 输入过滤：只允许数字和一个小数点 */
+  numInput.addEventListener('input', function () {
     var v = this.value.replace(/[^\d.]/g, '');
 
-    // 只保留第一个小数点
     var dot = v.indexOf('.');
     if (dot !== -1) {
       v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '');
     }
 
-    // 去掉多余前导零
     v = v.replace(/^0+(\d)/, '$1');
 
-    // 长度限制
     if (v.length > 18) v = v.slice(0, 18);
-
     if (v !== this.value) this.value = v;
 
-    render();
+    renderConvert();
   });
 
-  /* ---------- 切换单位 ---------- */
-  segment.addEventListener('click', function (e) {
+  catSegment.addEventListener('click', function (e) {
     var btn = e.target.closest('.seg-btn');
     if (!btn) return;
 
-    currentUnit = btn.dataset.unit;
-
-    Array.prototype.forEach.call(segment.querySelectorAll('.seg-btn'), function (b) {
-      b.classList.toggle('active', b === btn);
-    });
-
-    render();
+    convState.cat = btn.dataset.cat;
+    refreshConvert();
 
     if (navigator.vibrate) navigator.vibrate(8);
   });
 
-  /* ---------- 初始化 ---------- */
-  render();
+  unitSegment.addEventListener('click', function (e) {
+    var btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+
+    convState.unit[convState.cat] = btn.dataset.unit;
+    buildUnitButtons();
+    buildRows();
+    renderConvert();
+
+    if (navigator.vibrate) navigator.vibrate(8);
+  });
+
+  /* ========================================================
+   * 三、文字去重
+   * ====================================================== */
+  var dedupeIn = $('#dedupe-in');
+  var dedupeOut = $('#dedupe-out');
+  var dedupeInMeta = $('#dedupe-in-meta');
+  var dedupeOutMeta = $('#dedupe-out-meta');
+  var dedupeStatus = $('#dedupe-status');
+
+  var optTrim = $('#opt-trim');
+  var optCase = $('#opt-case');
+  var optEmpty = $('#opt-empty');
+  var optSort = $('#opt-sort');
+
+  var collator = null;
+  try {
+    collator = new Intl.Collator('zh-Hans-CN', { numeric: true, sensitivity: 'variant' });
+  } catch (e) {
+    collator = null;
+  }
+
+  function splitLines(text) {
+    // 去掉最后一个换行，避免多算一行空行
+    var t = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (t.charAt(t.length - 1) === '\n') t = t.slice(0, -1);
+    if (t === '') return [];
+    return t.split('\n');
+  }
+
+  function updateDedupeMeta() {
+    var inCount = splitLines(dedupeIn.value).length;
+    var outCount = splitLines(dedupeOut.value).length;
+    dedupeInMeta.textContent = inCount + ' 行';
+    dedupeOutMeta.textContent = outCount + ' 行';
+  }
+
+  function runDedupe() {
+    var lines = splitLines(dedupeIn.value);
+    var trim = optTrim.checked;
+    var ignoreCase = optCase.checked;
+    var dropEmpty = optEmpty.checked;
+    var shouldSort = optSort.checked;
+
+    var seen = Object.create(null);
+    var kept = [];
+    var removed = 0;
+
+    lines.forEach(function (line) {
+      var out = trim ? line.trim() : line;
+      var key = ignoreCase ? out.toLowerCase() : out;
+
+      if (dropEmpty && key === '') {
+        removed++;
+        return;
+      }
+
+      if (seen[key]) {
+        removed++;
+        return;
+      }
+
+      seen[key] = true;
+      kept.push(out);
+    });
+
+    if (shouldSort) {
+      kept.sort(collator ? collator.compare : undefined);
+    }
+
+    dedupeOut.value = kept.join('\n');
+    updateDedupeMeta();
+
+    dedupeStatus.textContent = '原始 ' + lines.length + ' 行 · 去掉 ' +
+                               removed + ' 行 · 保留 ' + kept.length + ' 行';
+
+    if (lines.length === 0) {
+      toast('先在上面粘贴一些内容');
+    } else {
+      toast('去重完成，保留 ' + kept.length + ' 行');
+    }
+  }
+
+  $('#btn-dedupe').addEventListener('click', runDedupe);
+
+  $('#btn-dedupe-copy').addEventListener('click', function () {
+    copyText(dedupeOut.value);
+  });
+
+  $('#btn-dedupe-clear').addEventListener('click', function () {
+    dedupeIn.value = '';
+    dedupeOut.value = '';
+    updateDedupeMeta();
+    dedupeStatus.textContent = '原始 0 行 · 去掉 0 行 · 保留 0 行';
+    dedupeIn.focus();
+  });
+
+  dedupeIn.addEventListener('input', updateDedupeMeta);
+
+  /* 选项变化后，如果已经有结果就自动重算 */
+  [optTrim, optCase, optEmpty, optSort].forEach(function (box) {
+    box.addEventListener('change', function () {
+      if (dedupeOut.value !== '') runDedupe();
+    });
+  });
+
+  /* ========================================================
+   * 四、字数统计
+   * ====================================================== */
+  var countIn = $('#count-in');
+
+  var statEls = {
+    chars: $('#st-chars'),
+    nospace: $('#st-nospace'),
+    cjk: $('#st-cjk'),
+    words: $('#st-words'),
+    digits: $('#st-digits'),
+    punct: $('#st-punct'),
+    lines: $('#st-lines'),
+    paras: $('#st-paras')
+  };
+
+  var lastCount = {
+    chars: 0, nospace: 0, cjk: 0, words: 0,
+    digits: 0, punct: 0, lines: 0, paras: 0
+  };
+
+  function isCJK(cp) {
+    return (cp >= 0x4E00 && cp <= 0x9FFF) ||   // CJK 统一表意文字
+           (cp >= 0x3400 && cp <= 0x4DBF) ||   // 扩展 A
+           (cp >= 0xF900 && cp <= 0xFAFF) ||   // 兼容表意文字
+           (cp >= 0x20000 && cp <= 0x2FA1F) || // 扩展 B~F
+           (cp >= 0x30000 && cp <= 0x3134F);   // 扩展 G
+  }
+
+  function fmtStat(n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function updateCount() {
+    var text = countIn.value;
+    var chars = Array.from(text);
+
+    var cjk = 0;
+    for (var i = 0; i < chars.length; i++) {
+      if (isCJK(chars[i].codePointAt(0))) cjk++;
+    }
+
+    var words = (text.match(/[A-Za-z]+(?:['’\-][A-Za-z]+)*/g) || []).length;
+    var digits = (text.match(/[0-9]/g) || []).length;
+    var punct = (text.match(/[\u0021-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]/g) || []).length +
+                (text.match(/[\u3001-\u303F\u2018\u2019\u201C\u201D\u2014\u2026\u00B7\uFF01-\uFF0F\uFF1A-\uFF20\uFF3B-\uFF40\uFF5B-\uFF65]/g) || []).length;
+
+    var norm = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    var lines = norm === '' ? 0 : norm.split('\n').length;
+    var paras = norm.trim() === '' ? 0 : norm.split(/\n\s*\n/).filter(function (p) {
+      return p.trim() !== '';
+    }).length;
+
+    lastCount = {
+      chars: chars.length,
+      nospace: Array.from(text.replace(/\s+/g, '')).length,
+      cjk: cjk,
+      words: words,
+      digits: digits,
+      punct: punct,
+      lines: lines,
+      paras: paras
+    };
+
+    statEls.chars.textContent = fmtStat(lastCount.chars);
+    statEls.nospace.textContent = fmtStat(lastCount.nospace);
+    statEls.cjk.textContent = fmtStat(lastCount.cjk);
+    statEls.words.textContent = fmtStat(lastCount.words);
+    statEls.digits.textContent = fmtStat(lastCount.digits);
+    statEls.punct.textContent = fmtStat(lastCount.punct);
+    statEls.lines.textContent = fmtStat(lastCount.lines);
+    statEls.paras.textContent = fmtStat(lastCount.paras);
+  }
+
+  var countRaf = 0;
+
+  countIn.addEventListener('input', function () {
+    if (countRaf) return;
+    countRaf = window.requestAnimationFrame(function () {
+      countRaf = 0;
+      updateCount();
+    });
+  });
+
+  $('#btn-count-copy').addEventListener('click', function () {
+    var c = lastCount;
+    copyText(
+      '字符数：' + c.chars + '\n' +
+      '不含空格：' + c.nospace + '\n' +
+      '中文字符：' + c.cjk + '\n' +
+      '英文单词：' + c.words + '\n' +
+      '数字：' + c.digits + '\n' +
+      '标点符号：' + c.punct + '\n' +
+      '行数：' + c.lines + '\n' +
+      '段落：' + c.paras
+    );
+  });
+
+  $('#btn-count-clear').addEventListener('click', function () {
+    countIn.value = '';
+    updateCount();
+    countIn.focus();
+  });
+
+  /* ========================================================
+   * 五、页脚说明弹层
+   * ====================================================== */
+  var SHEETS = {
+    privacy: {
+      title: '隐私说明',
+      body:
+        '<p><strong>不联网。</strong>单位换算、文字去重、字数统计全部在你本机的浏览器里完成，' +
+        '输入的文字不会被发送到任何服务器。</p>' +
+        '<p><strong>不保存。</strong>页面不写入 Cookie，也没有使用本地存储；' +
+        '刷新或关闭标签页后，输入框里的内容就消失了。</p>' +
+        '<p><strong>无第三方。</strong>不加载任何统计、广告或字体脚本，' +
+        '所有样式和逻辑都在这一个 HTML 文件里。</p>' +
+        '<p>如果以后部署到公网并接入了访问统计，记得在这里如实说明。</p>'
+    },
+    about: {
+      title: '关于本站',
+      body:
+        '<p>一个纯前端的小工具集合：单位换算、文字去重、字数统计。</p>' +
+        '<p>技术：HTML + CSS + 原生 JavaScript，单个文件、零依赖，' +
+        '自动适配深色模式和手机屏幕。</p>' +
+        '<p>开发者：戴华烁</p>'
+    }
+  };
+
+  var mask = $('#mask');
+  var sheetTitle = $('#sheet-title');
+  var sheetBody = $('#sheet-body');
+  var lastFocus = null;
+
+  function openSheet(key) {
+    var data = SHEETS[key];
+    if (!data) return;
+
+    lastFocus = document.activeElement;
+    sheetTitle.textContent = data.title;
+    sheetBody.innerHTML = data.body;
+    mask.classList.add('is-on');
+    mask.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    $('#sheet-close').focus();
+  }
+
+  function closeSheet() {
+    mask.classList.remove('is-on');
+    mask.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    lastFocus = null;
+  }
+
+  $$('[data-sheet]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openSheet(btn.dataset.sheet);
+    });
+  });
+
+  $('#sheet-close').addEventListener('click', closeSheet);
+
+  mask.addEventListener('click', function (e) {
+    if (e.target === mask) closeSheet();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && mask.classList.contains('is-on')) closeSheet();
+  });
+
+  /* ========================================================
+   * 六、初始化
+   * ====================================================== */
+  $('#year').textContent = String(new Date().getFullYear());
+
+  refreshConvert();
+  updateDedupeMeta();
+  updateCount();
+
+  var initial = (location.hash || '').replace('#', '');
+  if (TAB_KEYS.indexOf(initial) !== -1) {
+    activateTab(initial, true);
+  }
 })();
 </script>
- 
- <!-- 开发者信息（用于华为审核证明关联性） -->
-<div style="text-align: center; padding: 20px; margin-top: 30px; font-size: 13px; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6;">
-    <p style="margin: 4px 0;">应用名称：小戴实用工具</p>
-    <p style="margin: 4px 0;">开发者：戴华烁</p>
-</div>
- 
 </body>
 </html>
